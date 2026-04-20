@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon Dodge Game</title>
+  <style>
+    body {
+      background: #0d0d2b;
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Orbitron', Arial, sans-serif;
+      color: #fff;
+      text-align: center;
+    }
+    h1 {
+      margin-top: 20px;
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px #00e1ff;
+    }
+    #gameCanvas {
+      background: #181849;
+      display: block;
+      margin: 30px auto 0 auto;
+      border: 3px solid #00e1ff;
+      box-shadow: 0 0 30px #00e1ff, 0 0 60px #ffffff10;
+      border-radius: 15px;
+    }
+    .score {
+      font-size: 1.2em;
+      text-shadow: 0 0 8px #00e1ff, 0 0 4px #fff;
+    }
+    #restartBtn {
+      background: #00e1ff;
+      color: #181849;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 22px;
+      font-size: 1em;
+      letter-spacing: 2px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.2s;
+      display: none;
+    }
+    #restartBtn:hover {
+      background: #00fff7;
+    }
+  </style>
+</head>
+<body>
+  <h1>NEON DODGE</h1>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div class="score" id="score">Score: 0</div>
+  <button id="restartBtn" onclick="restartGame()">Restart</button>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElem = document.getElementById('score');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let player = { x: 200, y: 550, radius: 18, color: '#00e1ff' };
+    let obstacles = [];
+    let leftPressed = false;
+    let rightPressed = false;
+    let animation;
+    let gameOver = false;
+    let score = 0;
+    let speed = 2;
+
+    // Game event listeners
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') leftPressed = true;
+      if (e.key === 'ArrowRight') rightPressed = true;
+    });
+    document.addEventListener('keyup', e => {
+      if (e.key === 'ArrowLeft') leftPressed = false;
+      if (e.key === 'ArrowRight') rightPressed = false;
+    });
+
+    function drawPlayer() {
+      ctx.save();
+      ctx.shadowColor = player.color;
+      ctx.shadowBlur = 25;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fillStyle = player.color;
+      ctx.fill();
+      ctx.closePath();
+      ctx.restore();
+    }
+
+    function drawObstacles() {
+      for (let obs of obstacles) {
+        ctx.save();
+        ctx.shadowColor = obs.color;
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = obs.color;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.restore();
+      }
+    }
+
+    function updateObstacles() {
+      for (let obs of obstacles) {
+        obs.y += speed;
+      }
+      // Remove off-screen obstacles
+      obstacles = obstacles.filter(obs => obs.y < canvas.height);
+    }
+
+    function checkCollision() {
+      for (let obs of obstacles) {
+        let distX = Math.abs(player.x - (obs.x + obs.width / 2));
+        let distY = Math.abs(player.y - (obs.y + obs.height / 2));
+        if (
+          distX <= (obs.width / 2 + player.radius) &&
+          distY <= (obs.height / 2 + player.radius)
+        ) {
+          endGame();
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawObstacles();
+      scoreElem.textContent = 'Score: ' + score;
+    }
+
+    function gameLoop() {
+      if (gameOver) return;
+      draw();
+      updateObstacles();
+      checkCollision();
+
+      // Player movement
+      if (leftPressed && player.x - player.radius > 0) player.x -= 6;
+      if (rightPressed && player.x + player.radius < canvas.width) player.x += 6;
+
+      // Add new obstacles
+      if (Math.random() < 0.035 + speed / 800) {
+        let obsWidth = 50 + Math.random() * 90;
+        let x = Math.random() * (canvas.width - obsWidth);
+        let obs = {
+          x: x,
+          y: -24,
+          width: obsWidth,
+          height: 22,
+          color: ['#00e1ff', '#ff32e1', '#47ffb7', '#ffe000'][Math.floor(Math.random() * 4)]
+        };
+        obstacles.push(obs);
+      }
+
+      // Increase score and difficulty
+      score++;
+      if (score % 200 === 0) speed += 0.6;
+
+      animation = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      gameOver = true;
+      restartBtn.style.display = 'block';
+      ctx.save();
+      ctx.font = 'bold 32px Orbitron, Arial';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#ff32e1';
+      ctx.shadowBlur = 10;
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+      ctx.font = '20px Orbitron, Arial';
+      ctx.fillText('Final Score: ' + score, canvas.width / 2, canvas.height / 2 + 40);
+      ctx.restore();
+      cancelAnimationFrame(animation);
+    }
+
+    function restartGame() {
+      obstacles = [];
+      leftPressed = false;
+      rightPressed = false;
+      gameOver = false;
+      player.x = canvas.width / 2;
+      score = 0;
+      speed = 2;
+      restartBtn.style.display = 'none';
+      gameLoop();
+    }
+
+    // Start
+    gameLoop();
+  </script>
+</body>
+</html>
